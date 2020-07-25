@@ -69,13 +69,15 @@ func (m *mock) setPreparedError() {
 }
 
 func TestDo(t *testing.T) {
-	test1(t)
-	test2(t)
-	test3(t)
-	test4(t)
+	coordinator := NewCoordinatior()
+
+	test1(t, coordinator)
+	test2(t, coordinator)
+	test3(t, coordinator)
+	test4(t, coordinator)
 }
 
-func test1(t *testing.T) {
+func test1(t *testing.T, coordinator *Coordinator) {
 	m1 := mock{
 		status: initial,
 	}
@@ -86,7 +88,7 @@ func test1(t *testing.T) {
 	m1.Change()
 	m2.Change()
 
-	err := Do(context.TODO(), &m1, &m2)
+	err := coordinator.Do(context.TODO(), &m1, &m2)
 	if err != nil {
 		t.Error(err)
 	}
@@ -105,7 +107,7 @@ func test1(t *testing.T) {
 	}
 }
 
-func test2(t *testing.T) {
+func test2(t *testing.T, coordinator *Coordinator) {
 	m1 := mock{
 		status: initial,
 	}
@@ -118,7 +120,7 @@ func test2(t *testing.T) {
 
 	m1.setPreparedError()
 
-	err := Do(context.TODO(), &m1, &m2)
+	err := coordinator.Do(context.TODO(), &m1, &m2)
 	if err == nil {
 		t.Errorf("expected error, got %v", err)
 	}
@@ -137,7 +139,7 @@ func test2(t *testing.T) {
 	}
 }
 
-func test3(t *testing.T) {
+func test3(t *testing.T, coordinator *Coordinator) {
 	m1 := mock{
 		status: initial,
 	}
@@ -150,7 +152,7 @@ func test3(t *testing.T) {
 
 	m2.setPreparedError()
 
-	err := Do(context.TODO(), &m1, &m2)
+	err := coordinator.Do(context.TODO(), &m1, &m2)
 	if err == nil {
 		t.Errorf("expected error, got %v", err)
 	}
@@ -169,7 +171,7 @@ func test3(t *testing.T) {
 	}
 }
 
-func test4(t *testing.T) {
+func test4(t *testing.T, coordinator *Coordinator) {
 	m1 := mock{
 		status: initial,
 	}
@@ -183,7 +185,7 @@ func test4(t *testing.T) {
 	m1.setPreparedError()
 	m2.setPreparedError()
 
-	err := Do(context.TODO(), &m1, &m2)
+	err := coordinator.Do(context.TODO(), &m1, &m2)
 	if err == nil {
 		t.Errorf("expected error, got %v", err)
 	}

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	twopc "github.com/vladimir-kopaliani/2pc-example/internal/2pc"
+	"github.com/vladimir-kopaliani/2pc-example/internal/logger"
 	"github.com/vladimir-kopaliani/2pc-example/internal/model"
 
 	mongorepo "github.com/vladimir-kopaliani/2pc-example/internal/mongo"
@@ -28,6 +29,9 @@ func main() {
 	// }()
 
 	// ---
+
+	l := logger.Logger{}
+
 	repo1, err := mongorepo.New(ctx, &mongorepo.Configuration{
 		URI: "mongodb://mongo:27017/test_db",
 	})
@@ -60,7 +64,10 @@ func main() {
 		panic(err)
 	}
 
-	err = twopc.Do(ctx, &q1, &q2)
+	coord := twopc.NewCoordinatior()
+	coord.SetLogger(l)
+
+	err = coord.Do(ctx, &q1, &q2)
 	if err != nil {
 		panic(err)
 	}

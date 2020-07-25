@@ -113,16 +113,40 @@ func TestDo(t *testing.T) {
 func TestRegister(t *testing.T) {
 	var err error
 
-	m := mock{
+	m1 := mock{
 		status: initial,
 	}
 
-	m.Change()
-	m.setPreparedError()
+	m2 := mock{
+		status: initial,
+	}
+
+	m1.Change()
+	m2.Change()
+
+	m2.setPreparedError()
 
 	coordinator := NewCoordinatior()
-	err = coordinator.Register(context.TODO(), &m)
+	err = coordinator.Register(context.TODO(), &m1)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = coordinator.Register(context.TODO(), &m2)
 	if err == nil {
 		t.Error(err)
+	}
+
+	if m1.status != rollbacked {
+		t.Errorf("expected %q, got %q", rollbacked, m1.status)
+	}
+	if m2.status != rollbacked {
+		t.Errorf("expected %q, got %q", rollbacked, m2.status)
+	}
+	if m1.value != "" {
+		t.Errorf("expected %q, got %q", "", m1.value)
+	}
+	if m2.value != "" {
+		t.Errorf("expected %q, got %q", "", m2.value)
 	}
 }

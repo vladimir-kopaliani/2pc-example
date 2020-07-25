@@ -82,6 +82,15 @@ func (c *Coordinator) Register(ctx context.Context, q Querier) error {
 		}
 
 		q.Rollback(ctx)
+
+		for i := range c.qs {
+			if c.logger != nil {
+				(*c.logger).Debug(logPrefix, "rollbacked")
+			}
+
+			c.qs[i].Rollback(ctx)
+		}
+
 		return err
 	}
 

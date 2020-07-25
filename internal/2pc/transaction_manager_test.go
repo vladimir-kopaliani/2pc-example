@@ -69,15 +69,8 @@ func (m *mock) setPreparedError() {
 }
 
 func TestDo(t *testing.T) {
-	coordinator := NewCoordinatior()
+	var err error
 
-	test1(t, coordinator)
-	test2(t, coordinator)
-	test3(t, coordinator)
-	test4(t, coordinator)
-}
-
-func test1(t *testing.T, coordinator *Coordinator) {
 	m1 := mock{
 		status: initial,
 	}
@@ -88,7 +81,17 @@ func test1(t *testing.T, coordinator *Coordinator) {
 	m1.Change()
 	m2.Change()
 
-	err := coordinator.Do(context.TODO(), &m1, &m2)
+	coordinator := NewCoordinatior()
+	err = coordinator.Register(context.TODO(), &m1)
+	if err != nil {
+		t.Error(err)
+	}
+	err = coordinator.Register(context.TODO(), &m2)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = coordinator.Do(context.TODO())
 	if err != nil {
 		t.Error(err)
 	}
@@ -107,99 +110,19 @@ func test1(t *testing.T, coordinator *Coordinator) {
 	}
 }
 
-func test2(t *testing.T, coordinator *Coordinator) {
-	m1 := mock{
+func TestRegister(t *testing.T) {
+	var err error
+
+	m := mock{
 		status: initial,
 	}
-	m2 := mock{
-		status: initial,
-	}
 
-	m1.Change()
-	m2.Change()
+	m.Change()
+	m.setPreparedError()
 
-	m1.setPreparedError()
-
-	err := coordinator.Do(context.TODO(), &m1, &m2)
+	coordinator := NewCoordinatior()
+	err = coordinator.Register(context.TODO(), &m)
 	if err == nil {
-		t.Errorf("expected error, got %v", err)
-	}
-
-	if m1.status != rollbacked {
-		t.Errorf("expected %q, got %q", rollbacked, m1.status)
-	}
-	if m2.status != initial {
-		t.Errorf("expected %q, got %q", initial, m2.status)
-	}
-	if m1.value != "" {
-		t.Errorf("expected %q, got %q", "", m1.value)
-	}
-	if m2.value != "" {
-		t.Errorf("expected %q, got %q", "", m2.value)
-	}
-}
-
-func test3(t *testing.T, coordinator *Coordinator) {
-	m1 := mock{
-		status: initial,
-	}
-	m2 := mock{
-		status: initial,
-	}
-
-	m1.Change()
-	m2.Change()
-
-	m2.setPreparedError()
-
-	err := coordinator.Do(context.TODO(), &m1, &m2)
-	if err == nil {
-		t.Errorf("expected error, got %v", err)
-	}
-
-	if m1.status != rollbacked {
-		t.Errorf("expected %q, got %q", rollbacked, m1.status)
-	}
-	if m2.status != rollbacked {
-		t.Errorf("expected %q, got %q", rollbacked, m2.status)
-	}
-	if m1.value != "" {
-		t.Errorf("expected %q, got %q", "", m1.value)
-	}
-	if m2.value != "" {
-		t.Errorf("expected %q, got %q", "", m2.value)
-	}
-}
-
-func test4(t *testing.T, coordinator *Coordinator) {
-	m1 := mock{
-		status: initial,
-	}
-	m2 := mock{
-		status: initial,
-	}
-
-	m1.Change()
-	m2.Change()
-
-	m1.setPreparedError()
-	m2.setPreparedError()
-
-	err := coordinator.Do(context.TODO(), &m1, &m2)
-	if err == nil {
-		t.Errorf("expected error, got %v", err)
-	}
-
-	if m1.status != rollbacked {
-		t.Errorf("expected %q, got %q", rollbacked, m1.status)
-	}
-	if m2.status != initial {
-		t.Errorf("expected %q, got %q", initial, m2.status)
-	}
-	if m1.value != "" {
-		t.Errorf("expected %q, got %q", "", m1.value)
-	}
-	if m2.value != "" {
-		t.Errorf("expected %q, got %q", "", m2.value)
+		t.Error(err)
 	}
 }

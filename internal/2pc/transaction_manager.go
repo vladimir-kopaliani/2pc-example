@@ -22,91 +22,44 @@ type Logger interface {
 }
 
 type Coordinator struct {
+	qs     []Querier
 	logger *Logger
 }
 
 // NewCoordinatior returns new instance of Coordinator
 func NewCoordinatior() *Coordinator {
-	return &Coordinator{}
+	return &Coordinator{
+		qs: make([]Querier, 0, 2),
+	}
 }
 
 // Do makes two process transaction
-func (c Coordinator) Do(ctx context.Context, q1, q2 Querier /*queries ...Querier*/) error {
+func (c Coordinator) Do(ctx context.Context) error {
 	var err error
 
 	if c.logger != nil {
 		(*c.logger).Debug(logPrefix, "starting new transaction")
 	}
 
-	err = q1.Prepare(ctx)
-	if err != nil {
-		if c.logger != nil {
-			(*c.logger).Error(logPrefix, "error: prepare 1st:", err)
-		}
-
-		q1.Rollback(ctx)
-		return err
-	}
-
-	if c.logger != nil {
-		(*c.logger).Debug(logPrefix, "1st is prepared")
-	}
-
-	err = q2.Prepare(ctx)
-	if err != nil {
-		if c.logger != nil {
-			(*c.logger).Error(logPrefix, "error: prepare 2nd:", err)
-		}
-
-		q1.Rollback(ctx)
-		q2.Rollback(ctx)
-		return err
-	}
-
-	if c.logger != nil {
-		(*c.logger).Debug(logPrefix, "2nd is prepared")
-	}
-
+	// commit phase
 	wg := sync.WaitGroup{}
-	wg.Add(2)
+	wg.Add(len(c.qs))
 
-	go func() {
-		defer wg.Done()
-		err = q1.Commit(ctx)
-		if err != nil {
-			q1.Rollback(ctx)
-			q2.Rollback(ctx)
-
-			if c.logger != nil {
-				(*c.logger).Error(logPrefix, "error: commiting 1st:", err)
+	for i := range c.qs {
+		go func(i int) {
+			defer wg.Done()
+			err = c.qs[i].Commit(ctx)
+			if err != nil {
+				if c.logger != nil {
+					(*c.logger).Error(logPrefix, "error: commiting:", err)
+				}
 			}
 
-			// return err
-		}
-
-		if c.logger != nil {
-			(*c.logger).Debug(logPrefix, "1nd is commited")
-		}
-	}()
-
-	go func() {
-		defer wg.Done()
-		err = q2.Commit(ctx)
-		if err != nil {
-			q1.Rollback(ctx)
-			q2.Rollback(ctx)
-
 			if c.logger != nil {
-				(*c.logger).Error(logPrefix, "error: commiting 2nd:", err)
+				(*c.logger).Debug(logPrefix, "commited")
 			}
-
-			// return err
-		}
-
-		if c.logger != nil {
-			(*c.logger).Debug(logPrefix, "1nd is commited")
-		}
-	}()
+		}(i)
+	}
 
 	wg.Wait()
 
@@ -119,4 +72,19 @@ func (c Coordinator) Do(ctx context.Context, q1, q2 Querier /*queries ...Querier
 
 func (c *Coordinator) SetLogger(logger Logger) {
 	c.logger = &logger
+}
+
+func (c *Coordinator) Register(ctx context.Context, q Querier) error {
+	err := q.Prepare(ctx)
+	if err != nil {
+		if c.logger != nil {
+			(*c.logger).Error(logPrefix, "error: prepare:", err)
+		}
+
+		q.Rollback(ctx)
+		return err
+	}
+
+	c.qs = append(c.qs, q)
+	return nil
 }

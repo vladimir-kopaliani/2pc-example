@@ -67,7 +67,10 @@ func main() {
 	coord := twopc.NewCoordinatior()
 	coord.SetLogger(l)
 
-	err = coord.Do(ctx, &q1, &q2)
+	coord.Register(ctx, &q1)
+	coord.Register(ctx, &q2)
+
+	err = coord.Do(ctx)
 	if err != nil {
 		panic(err)
 	}
